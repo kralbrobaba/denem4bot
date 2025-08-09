@@ -1,139 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Başla — Wallet Panel (TRC20)</title>
-  <style>
-    :root{--bg:#071328;--card:#071a2b;--accent:#00d1b2;--muted:#96a7bd}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#061124,#07162a);color:#eaf6f3;padding:18px;}
-    .wrap{max-width:820px;margin:0 auto}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:18px;border:1px solid rgba(255,255,255,0.03)}
-    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#5fe9c7);display:flex;align-items:center;justify-content:center;color:#042024;font-weight:800}
-    h1{margin:0;font-size:18px}
-    .grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-    .btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#5fe9c7);color:#042024;font-weight:700;cursor:pointer}
-    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
-    .small{font-size:13px;color:var(--muted)}
-    .section{margin-top:10px}
-    input{width:100%;padding:10px;border-radius:8px;border:none;margin-top:8px}
-    .mini{background:rgba(255,255,255,0.01);padding:12px;border-radius:10px}
-    @media(max-width:820px){.grid{grid-template-columns:1fr}}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Games</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+  #popup {
+    display: none;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0px 0px 20px rgba(0,0,0,0.3);
+    width: 300px;
+    margin: 20px auto;
+  }
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  button:hover {
+    background-color: #45a049;
+  }
+</style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <header>
-        <div style="display:flex;gap:12px;align-items:center">
-          <div class="logo">US</div>
-          <div>
-            <h1>Başla — TRC20 Panel</h1>
-            <div class="small">Network: TRC20</div>
-          </div>
-        </div>
-        <div class="small" id="usernameArea">Yükleniyor...</div>
-      </header>
 
-      <div class="grid">
-        <div>
-          <div class="section mini">
-            <div style="font-weight:700;font-size:20px" id="balance">$0.00</div>
-            <div class="small" id="refInfo">Referrals >=$250: 0 — Bonus: 0.00%</div>
-            <div style="margin-top:10px">
-              <button class="btn" onclick="playDaily()">🎮 Play Daily (Mini Game)</button>
-              <button class="btn secondary" onclick="openDeposit()">💳 Deposit (TX gönder)</button>
-              <button class="btn secondary" onclick="openWithdraw()">🏧 Withdraw</button>
-            </div>
-          </div>
+<h2>Hoş Geldiniz 🎮</h2>
+<button id="startBtn">Başla</button>
 
-          <div class="section">
-            <h3 style="margin:6px 0">Mini Games</h3>
-            <p class="small">Günde 1 kez oynayabilirsiniz. Kazanç %1-4 + referans bonusu.</p>
-            <div id="miniMsg" class="small">Oynamak için Play Daily butonuna bas.</div>
-          </div>
+<div id="popup">
+  <h3>Mini Games</h3>
+  <p>Oynamaya başlamak için Onayla tuşuna basın.</p>
+  <button id="confirmBtn">Onayla</button>
+</div>
 
-          <div class="section">
-            <h3 style="margin:6px 0">How to</h3>
-            <div class="small">• Deposit: TRC20 USDT gönderin, TX hash + miktar gönderin. <br>• Withdraw: Adres + miktar gönderin, admin onayı sonrası manuel ödenir.</div>
-          </div>
-        </div>
-
-        <div>
-          <div class="section">
-            <div class="small">Referral Link</div>
-            <div id="refLink" style="color:var(--accent);word-break:break-all">—</div>
-          </div>
-
-          <div class="section">
-            <div class="small">Platform Deposit Address</div>
-            <div id="depositAddr" style="font-weight:700;margin-top:6px">TRC20: PLACEHOLDER</div>
-          </div>
-
-          <div class="section">
-            <h3 style="margin:6px 0">History</h3>
-            <div id="history">Geçmiş yüklenmedi.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
   const tg = window.Telegram.WebApp;
-  tg.expand();
 
-  // set deposit address from server-side replaced placeholder if needed
-  document.getElementById('depositAddr').innerText = 'TRC20: ' + (tg.initDataUnsafe?.user?.id ? '' : '') ;
-  // request profile on load
-  function requestProfile(){
-    tg.sendData(JSON.stringify({type:'request_profile'}));
-  }
-  requestProfile();
-
-  // WebApp actions
-  function openDeposit(){
-    const tx = prompt('TX hash ve miktar (örnek: TXHASH123,100)');
-    if(!tx) return;
-    tg.sendData(JSON.stringify({type:'deposit', payload: tx}));
-    setMiniMsg('Deposit gönderildi — admin onayı bekleniyor.');
-  }
-  function openWithdraw(){
-    const val = prompt('Adres ve miktar (örnek: Tabc...,50)');
-    if(!val) return;
-    tg.sendData(JSON.stringify({type:'withdraw', payload: val}));
-    setMiniMsg('Withdraw talebi gönderildi — admin onayı bekleniyor.');
-  }
-  function playDaily(){
-    tg.sendData(JSON.stringify({type:'play_daily'}));
-    setMiniMsg('Daily oynama talebi gönderildi...');
-  }
-  function setMiniMsg(t){ document.getElementById('miniMsg').innerText = t; }
-
-  // Listen for messages from bot (bot replies with JSON strings)
-  // Telegram Web App receives bot messages as regular chat messages; we can parse them by listening to window 'message' events from parent (some clients deliver differently).
-  // Safer approach: when bot replies with a JSON payload, it will be shown in the chat — users can click refresh. But we'll attempt to parse incoming postMessage events.
-
-  window.addEventListener('message', (ev) => {
-    // Many clients won't post messages — include fallback
-    try {
-      const d = ev.data;
-      if (typeof d === 'string') {
-        const obj = JSON.parse(d);
-        if (obj.balance !== undefined) {
-          document.getElementById('balance').innerText = '$' + Number(obj.balance).toFixed(2);
-          document.getElementById('refInfo').innerText = 'Referrals >=$250: ' + obj.ref_count + ' — Bonus: ' + (Math.min(obj.ref_count,5)*0.5).toFixed(2) + '%';
-          document.getElementById('refLink').innerText = obj.ref_link;
-          document.getElementById('depositAddr').innerText = obj.deposit_address || '';
-        }
-      }
-    } catch (e) { /* ignore parse errors */ }
+  document.getElementById("startBtn").addEventListener("click", () => {
+    const popup = document.getElementById("popup");
+    popup.style.display = popup.style.display === "none" ? "block" : "none";
   });
 
-  // Also provide a simple polling: user can press the Başla button again to refresh via sendData
-  // (bot will reply with JSON string containing balance/ref info)
+  document.getElementById("confirmBtn").addEventListener("click", () => {
+    tg.sendData("basla_onaylandi"); // Bota gidecek veri
+    tg.close(); // WebApp'i kapatır
+  });
 </script>
+
 </body>
 </html>
